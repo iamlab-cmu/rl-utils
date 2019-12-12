@@ -92,8 +92,11 @@ class Reps(object):
                 An ndarray of the covariance for the policy parameters,
                 or None if policy calculation failed.
                 Shape depends on the value of policy_variance_model
-            temperature (float): Value of the 'temperature' parameter
-                as output from the REPS optimization function
+            info (dict): Details about the REPS optimization:
+                - 'weights' (np.ndarray, shape=(n_rewards,)): Weights of the
+                    rewards based on relative entropy optimization
+                - 'temperature' (float): Value of the 'temperature' parameter
+                    as output from the REPS optimization function
         """
 
         # Input argument handling
@@ -112,11 +115,8 @@ class Reps(object):
             policy_params_var = None
         else:
             # Update policy mean
-            new_mean = np.zeros(n_params)
-            for param_sample, weight in zip(policy_param_samples, weights):
-                new_mean += param_sample*weight
             sum_weights = np.sum(weights)
-            policy_params_mean = new_mean/sum_weights
+            policy_params_mean = np.dot(np.transpose(policy_param_samples), weights)/sum_weights
 
             # Update policy variance
             if self.policy_variance_model == 'standard':
@@ -135,4 +135,8 @@ class Reps(object):
                     new_var += np.power(policy_params_mean_diff,2.)*weight
             policy_params_var = new_var/sum_weights
 
-        return policy_params_mean, policy_params_var, temperature
+        # Create output dictionary of info
+        info = {'weights': weights,
+                'temperature': temperature}
+
+        return policy_params_mean, policy_params_var, info

@@ -35,7 +35,7 @@ def test_reps():
                           test_data['temperature_gt']) < correct_thresh
 
     # Test object version of REPS
-    policy_params_mean, policy_params_var, temperature = \
+    policy_params_mean, policy_params_var, reps_info = \
         reps.policy_from_samples_and_rewards(test_data['policy_param_samples'],
                                              test_data['rewards'])
 
@@ -43,5 +43,7 @@ def test_reps():
                           test_data['policy_params_mean_gt']) < correct_thresh
     assert np.linalg.norm(policy_params_var -
                           test_data['policy_params_var_gt']) < correct_thresh
-    assert np.linalg.norm(temperature -
+    assert np.linalg.norm(reps_info['weights'] -
+                          test_data['weights_gt']) < correct_thresh
+    assert np.linalg.norm(reps_info['temperature'] -
                           test_data['temperature_gt']) < correct_thresh
