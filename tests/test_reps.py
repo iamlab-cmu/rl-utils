@@ -1,3 +1,6 @@
+import numpy as np
+import os
+import pickle
 import pytest
 
 import rl_utils
@@ -6,18 +9,39 @@ import rl_utils
 
 def test_reps():
 
+    correct_thresh = 1e-5
+
+    # Load in ground truth test data.
+    # Assume it's located in the same directory as this file
+    test_file = 'test_reps_data.pkl'
+    test_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  test_file)
+    with open(test_file_path, 'rb') as f:
+        test_data = pickle.load(f)
+
     # Create REPS object
-    epsilon = 0.5
-    min_eta = 0.0001
+    reps = rl_utils.Reps(epsilon=test_data['rel_entropy_thresh'],
+                         min_eta=test_data['min_temperature'])
 
-    reps = rl_utils.Reps(epsilon=epsilon,
-                         min_eta=min_eta)
-    print('in test_reps')
+    # Test reps_weights_from_rewards function (without object)
+    weights, temperature = rl_utils.reps_weights_from_rewards(
+        test_data['rewards'],
+        test_data['rel_entropy_thresh'],
+        test_data['min_temperature'])
+    
+    assert np.linalg.norm(weights -
+                          test_data['weights_gt']) < correct_thresh
+    assert np.linalg.norm(temperature -
+                          test_data['temperature_gt']) < correct_thresh
 
-    rewards = [x for x in range(10)]
-    print(rewards)
+    # Test object version of REPS
+    policy_params_mean, policy_params_var, temperature = \
+        reps.policy_from_samples_and_rewards(test_data['policy_param_samples'],
+                                             test_data['rewards'])
 
-    weights = reps.get_weights(rewards)
-    print(weights)
-    import pdb
-    pdb.set_trace()
+    assert np.linalg.norm(policy_params_mean -
+                          test_data['policy_params_mean_gt']) < correct_thresh
+    assert np.linalg.norm(policy_params_var -
+                          test_data['policy_params_var_gt']) < correct_thresh
+    assert np.linalg.norm(temperature -
+                          test_data['temperature_gt']) < correct_thresh

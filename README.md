@@ -18,4 +18,5 @@ A library for reinforcement learning algorithms, including REPS.
 `pip install . -r requirements.txt`
 
 # Test
-TBD
+All unit tests should pass. Run unit tests through the following command:
+`pytest`
