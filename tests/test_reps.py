@@ -20,13 +20,13 @@ def test_reps():
         test_data = pickle.load(f)
 
     # Create REPS object
-    reps = rl_utils.Reps(epsilon=test_data['rel_entropy_thresh'],
-                         min_eta=test_data['min_temperature'])
+    reps = rl_utils.Reps(rel_entropy_bound=test_data['rel_entropy_bound'],
+                         min_temperature=test_data['min_temperature'])
 
     # Test reps_weights_from_rewards function (without object)
     weights, temperature = rl_utils.reps_weights_from_rewards(
         test_data['rewards'],
-        test_data['rel_entropy_thresh'],
+        test_data['rel_entropy_bound'],
         test_data['min_temperature'])
     
     assert np.linalg.norm(weights -

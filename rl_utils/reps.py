@@ -3,47 +3,47 @@ from scipy.optimize import minimize
 
 # ---------------------------------------------------------
 
-# input either list/array of dimension []
-# always returns np type of size 
-def reps_weights_from_rewards(rewards, epsilon, min_eta):
+def reps_weights_from_rewards(rewards, rel_entropy_bound, min_temperature):
     """
     REPS optimization function to calculate weights based on rewards.
 
     Args:
         rewards (list of float or np.ndarray): An array of rewards
             of length n_rewards
-        epsilon (float): Kullback-Leibler (KL) divergence bound
-        min_eta (float): Minimum value of the `temperature'
+        rel_entropy_bound (float): Kullback-Leibler (KL) divergence bound
+            used to reweight rewards
+        min_temperature (float): Minimum value of the `temperature'
             parameter that the optimization function may return
 
     Returns:
         weights (np.ndarray, shape=(n_rewards,)): Weights of the
             rewards based on relative entropy optimization
-        eta (float): Value of the 'temperature' parameter
+        temperature (float): Value of the 'temperature' parameter
             as output from the optimization function
     """
 
     R = rewards - np.max(rewards)
 
     def g(eta):
-        return eta*np.log(np.mean(np.exp(R/eta))) + np.max(rewards) + eta*epsilon
+        return eta*np.log(np.mean(np.exp(R/eta))) + np.max(rewards) + eta*rel_entropy_bound
 
     def gp(eta):
-        return np.log(np.mean(np.exp(R/eta))) - (np.mean(np.exp(R/eta) * (R/eta)) / np.mean(np.exp(R/eta))) + epsilon
+        return np.log(np.mean(np.exp(R/eta))) - (np.mean(np.exp(R/eta) * (R/eta)) / np.mean(np.exp(R/eta))) + rel_entropy_bound
 
     eta_0 = 0.1
     while True:
-        res = minimize(g, eta_0, jac=gp, constraints=({'type': 'ineq', 'fun': lambda eta: eta - min_eta}), method='SLSQP')
+        res = minimize(g, eta_0, jac=gp, constraints=({'type': 'ineq', 'fun': lambda eta: eta - min_temperature}), method='SLSQP')
         eta = res.x[0]
 
         if np.isnan(eta):
-            eta_0 = np.random.rand() + min_eta
+            eta_0 = np.random.rand() + min_temperature
             continue
         break
 
     weights = np.exp(R/eta)
+    temperature = eta
 
-    return weights, eta
+    return weights, temperature
 
 
 class Reps(object):
@@ -51,24 +51,27 @@ class Reps(object):
     Relative Entropy Policy Search (REPS) algorithm class.
 
     Args:
-        epsilon (float): Kullback-Leibler (KL) divergence bound
-        min_eta (float): Minimum value of the `temperature'
+        rel_entropy_bound (float): Kullback-Leibler (KL) divergence bound
+            used to reweight rewards
+        min_temperature (float): Minimum value of the `temperature'
             parameter that the optimization function may return
         policy_variance_model (str): Modeling assumption for the
             variance of the policy parameters. Two options:
                 - 'standard' returns full covariance matrix
                 - 'diagonal' assumes the policy parameters are
                     completely uncorrelated
+            When in doubt, use 'standard'. A 'diagonal' variance
+            model may be an overly strong assumption for your problem.
     """
 
-    def __init__(self, epsilon, min_eta, policy_variance_model='standard'):
-        self.epsilon = epsilon
-        self.min_eta = min_eta
+    def __init__(self, rel_entropy_bound, min_temperature, policy_variance_model='standard'):
+        self.rel_entropy_bound = rel_entropy_bound
+        self.min_temperature = min_temperature
         self.policy_variance_model = policy_variance_model
 
     def weights_from_rewards(self, rewards):
         """ Wrapper function for reps_weights_from_rewards """
-        return reps_weights_from_rewards(rewards, self.epsilon, self.min_eta)
+        return reps_weights_from_rewards(rewards, self.rel_entropy_bound, self.min_temperature)
 
     def policy_from_samples_and_rewards(self, policy_param_samples, rewards):
         """
@@ -89,7 +92,7 @@ class Reps(object):
                 An ndarray of the covariance for the policy parameters,
                 or None if policy calculation failed.
                 Shape depends on the value of policy_variance_model
-            eta (float): Value of the 'temperature' parameter
+            temperature (float): Value of the 'temperature' parameter
                 as output from the REPS optimization function
         """
 
@@ -101,7 +104,7 @@ class Reps(object):
             "Expected the length of policy_param_samples and rewards to be the same, but they are not."
 
         # Calculate weights
-        weights, eta = self.weights_from_rewards(rewards)
+        weights, temperature = self.weights_from_rewards(rewards)
 
         # Catch if optimization returned an inf
         if np.any(weights == np.inf):
@@ -132,4 +135,4 @@ class Reps(object):
                     new_var += np.power(policy_params_mean_diff,2.)*weight
             policy_params_var = new_var/sum_weights
 
-        return policy_params_mean, policy_params_var, eta
+        return policy_params_mean, policy_params_var, temperature
