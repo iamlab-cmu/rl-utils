@@ -39,11 +39,7 @@ def test_reps():
         reps.policy_from_samples_and_rewards(test_data['policy_param_samples'],
                                              test_data['rewards'])
 
-    assert np.linalg.norm(policy_params_mean -
-                          test_data['policy_params_mean_gt']) < correct_thresh
-    assert np.linalg.norm(policy_params_var -
-                          test_data['policy_params_var_gt']) < correct_thresh
-    assert np.linalg.norm(reps_info['weights'] -
-                          test_data['weights_gt']) < correct_thresh
-    assert np.linalg.norm(reps_info['temperature'] -
-                          test_data['temperature_gt']) < correct_thresh
+    assert np.allclose(policy_params_mean, test_data['policy_params_mean_gt'], correct_thresh)
+    assert np.allclose(policy_params_var, test_data['policy_params_var_gt'], correct_thresh)
+    assert np.allclose(reps_info['weights'], test_data['weights_gt'], correct_thresh)
+    assert np.allclose(reps_info['temperature'], test_data['temperature_gt'], correct_thresh)
