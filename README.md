@@ -13,7 +13,7 @@ A library for reinforcement learning algorithms, including REPS.
 `source <path to virtual env>/bin/activate`
 
 ## Install package with requirements
-`pip install . -r requirements.txt`
+`pip install .`
 
 # Test
 All unit tests should pass. Run unit tests through the following command:
