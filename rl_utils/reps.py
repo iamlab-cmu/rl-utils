@@ -24,26 +24,28 @@ def reps_weights_from_rewards(rewards, rel_entropy_bound, min_temperature):
 
     R = rewards - np.max(rewards)
 
-    def g(eta):
-        return eta*np.log(np.mean(np.exp(R/eta))) + np.max(rewards) + eta*rel_entropy_bound
+    # temp is the temperature, also referred to as 'eta' in the REPS formulation
+    def g(temp):
+        return temp*np.log(np.mean(np.exp(R/temp))) + np.max(rewards) + temp*rel_entropy_bound
 
-    def gp(eta):
-        return np.log(np.mean(np.exp(R/eta))) - (np.mean(np.exp(R/eta) * (R/eta)) / np.mean(np.exp(R/eta))) + rel_entropy_bound
+    def gp(temp):
+        return np.log(np.mean(np.exp(R/temp))) - (np.mean(np.exp(R/temp) * (R/temp)) / np.mean(np.exp(R/temp))) + rel_entropy_bound
 
     eta_0 = 0.1
     while True:
-        res = minimize(g, eta_0, jac=gp, constraints=({'type': 'ineq', 'fun': lambda eta: eta - min_temperature}), method='SLSQP')
-        eta = res.x[0]
+        res = minimize(g, eta_0, jac=gp, constraints=({'type': 'ineq', 'fun': lambda temp: temp - min_temperature}), method='SLSQP')
+        temp = res.x[0]
 
-        if np.isnan(eta):
+        if np.isnan(temp):
             eta_0 = np.random.rand() + min_temperature
             continue
         break
 
-    weights = np.exp(R/eta)
-    temperature = eta
+    # Enforce temperature threshold and calculate weights
+    temp = max(temp, min_temperature)
+    weights = np.exp(R/temp)
 
-    return weights, temperature
+    return weights, temp
 
 
 class Reps(object):
