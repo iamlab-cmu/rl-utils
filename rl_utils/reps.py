@@ -48,7 +48,7 @@ def reps_weights_from_rewards(rewards, rel_entropy_bound, min_temperature):
     return weights, temp
 
 
-class Reps(object):
+class Reps:
     """
     Relative Entropy Policy Search (REPS) algorithm class.
 
